@@ -124,7 +124,6 @@ eval "$(starship init zsh)"
 
 # Initialize zoxide for smarter directory navigation
 eval "$(zoxide init zsh)"
-eval "$(starship init zsh)"
 
 # Python
 PYTHONDONTWRITEBYTECODE=1
@@ -135,13 +134,12 @@ alias cod='conda deactivate'
 alias gpl='git push --force-with-lease'
 alias gpp='git pull --rebase && git push'
 alias ls='exa --icons -F -H --group-directories-first --git -1'
+alias kpl='kp 7860 & kp 3000'
 autoload -Uz compinit
 zstyle ':completion:*' menu select
 fpath+=~/.zfunc
 export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
 export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-alias gpp='git pull --rebase  git push'
-alias ls='exa --icons -F -H --group-directories-first --git -1'
 
 # pnpm
 export PNPM_HOME="/Users/ogabrielluiz/Library/pnpm"
@@ -169,356 +167,22 @@ alias cdlbb='cd ~/Projects/langflow/src/backend/base'
 # Custom Functions
 # Function to kill processes on a specific port
 kp() {
-    lsof -i tcp:"$1" | awk 'NR!=1 {print $2}' | xargs kill -9
-}
-
-# Function to update the main branch and optionally rebase or merge it into the current feature branch
-gcop() {
-    local main_branch="$1"
-    local action="${2:-prompt}"  # Default to prompt if no action specified
-    local feature_branch="$(git rev-parse --abbrev-ref HEAD)"  # Store the current branch name
-
-    if [[ "$feature_branch" == "$main_branch" ]]; then
-        echo "You are already on the '$main_branch' branch."
-        return 0
-    fi
-
-    # Check for and stash any uncommitted changes
-    local stash_needed=false
-    if ! git diff --quiet || ! git diff --cached --quiet; then
-        echo "Stashing local changes..."
-        git stash push --include-untracked -m "Stash before updating $main_branch"
-        stash_needed=true
-    fi
-
-    # Checkout the main branch and pull the latest changes
-    if git checkout "$main_branch" && git pull; then
-        echo "Updated '$main_branch' successfully."
-    else
-        echo "Failed to update '$main_branch'."
-        # Restore stashed changes if there was a failure
-        if $stash_needed; then
-            git stash pop
-        fi
+    if [ $# -eq 0 ]; then
+        echo "Usage: kp <port1> [port2] [port3] ..."
+        echo "Example: kp 3000 7860 8080"
         return 1
     fi
 
-    # Switch back to the feature branch
-    if git checkout "$feature_branch"; then
-        echo "Switched back to '$feature_branch'."
-    else
-        echo "Failed to switch back to '$feature_branch'."
-        # Restore stashed changes if there was a failure
-        if $stash_needed; then
-            git stash pop
-        fi
-        return 1
-    fi
-
-    # Decide on action based on input or prompt
-    if [[ "$action" == "prompt" ]]; then
-        echo "Would you like to rebase ('r'), merge ('m'), or skip ('s')?"
-        read action
-    fi
-
-    case "$action" in
-        r | rebase)
-            if git rebase "$main_branch"; then
-                echo "Rebased '$feature_branch' onto '$main_branch' successfully."
-            else
-                echo "Failed to rebase. Please resolve conflicts if any and complete the rebase."
-                # Note: Don't restore stash here as it could interfere with rebase conflict resolution
-                return 1
-            fi
-            ;;
-        m | merge)
-            if git merge "$main_branch"; then
-                echo "Merged '$main_branch' into '$feature_branch' successfully."
-            else
-                echo "Failed to merge. Please resolve conflicts if any."
-                # Note: Don't restore stash here as it could interfere with merge conflict resolution
-                return 1
-            fi
-            ;;
-        s | skip)
-            echo "No action taken."
-            ;;
-        *)
-            echo "Invalid action. No action taken."
-            ;;
-    esac
-
-    # Restore stashed changes if everything succeeded
-    if $stash_needed; then
-        echo "Restoring stashed changes..."
-        git stash pop
-    fi
-}
-
-# Safely checkout a GitHub pull request while preserving any local changes
-# This function will:
-# 1. Stash any uncommitted changes
-# 2. Checkout the specified PR using GitHub CLI (supports PR number or full URL)
-# 3. Restore the stashed changes if any were saved
-#
-# Usage: ghpr <PR_NUMBER_OR_URL>
-# Examples:
-#   ghpr 123 - Checks out PR #123, stashing any local changes first
-#   ghpr https://github.com/langflow-ai/langflow/pull/8714 - Checks out PR from URL
-ghpr() {
-    if [ -z "$1" ]; then
-        echo "Safely checkout a GitHub PR, stashing and restoring any local changes"
-        echo "Usage: ghpr <PR_NUMBER_OR_URL>"
-        echo "Examples:"
-        echo "  ghpr 123"
-        echo "  ghpr https://github.com/langflow-ai/langflow/pull/8714"
-        return 1
-    fi
-
-    local pr_input="$1"
-    local pr_number
-
-    # Check if input is a URL and extract PR number
-    if [[ "$pr_input" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)$ ]]; then
-        pr_number="${BASH_REMATCH[1]}"
-        echo "Extracted PR number: $pr_number from URL: $pr_input"
-    elif [[ "$pr_input" =~ ^[0-9]+$ ]]; then
-        pr_number="$pr_input"
-    else
-        echo "Error: Invalid input. Please provide a PR number or a valid GitHub PR URL."
-        echo "Examples:"
-        echo "  ghpr 123"
-        echo "  ghpr https://github.com/langflow-ai/langflow/pull/8714"
-        return 1
-    fi
-
-    # Check if there are any changes
-    if ! git diff --quiet || ! git diff --cached --quiet; then
-        echo "Stashing local changes..."
-        git stash push --include-untracked -m "Stash before checking out PR #$pr_number"
-    fi
-
-    # Get and display PR title
-    echo "PR Title: $(gh pr view "$pr_number" --json title --jq '.title')"
-
-    # Checkout the PR
-    echo "Checking out PR #$pr_number..."
-    gh pr checkout "$pr_number"
-
-    # Check if there's anything in the stash and apply it back
-    if git stash list | grep -q "Stash before checking out PR #$pr_number"; then
-        echo "Applying stashed changes..."
-        git stash pop
-    fi
-}
-
-# Auto-handle GitHub PR URLs - just paste the URL directly and it will checkout the PR
-# Uses zshaddhistory hook to intercept URLs before they're executed
-zshaddhistory() {
-    local line="$1"
-    # Remove trailing newline and check if it's a GitHub PR URL
-    local clean_line="${line%$'\n'}"
-    if [[ "$clean_line" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)$ ]]; then
-        echo "🔄 Detected GitHub PR URL, checking out PR #${match[1]}..."
-        ghpr "$clean_line"
-        return 1  # Prevent the original command from executing
-    fi
-    return 0  # Allow normal processing for other commands
-}
-
-# Function to show diff between versions
-show_diff() {
-    # Validate that we have 1 or 2 arguments.
-    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-        echo "Usage: show_diff [--backend|--frontend|--docs] [--all|--A|--M]"
-        return 1
-    fi
-
-    local option="$1"
-    # Default diff filter is --all if not provided.
-    local diff_filter="${2:---all}"
-
-    # Validate the provided component option.
-    case "$option" in
-        --backend|--frontend|--docs)
-            ;;
-        *)
-            echo "Error: Invalid option '$option'"
-            echo "Usage: show_diff [--backend|--frontend|--docs] [--all|--A|--M]"
-            return 1
-            ;;
-    esac
-
-    # Validate the diff_filter option.
-    case "$diff_filter" in
-        --all|--A|--M)
-            ;;
-        *)
-            echo "Error: Invalid diff filter option '$diff_filter'"
-            echo "Usage: show_diff [--backend|--frontend|--docs] [--all|--A|--M]"
-            return 1
-            ;;
-    esac
-
-    # Update tags.
-    git fetch --tags
-
-    # Determine the latest stable tag (ignoring any tag containing 'dev').
-    local stable_tag
-    stable_tag=$(git for-each-ref --sort=creatordate --format '%(refname:short)' refs/tags \
-                  | grep -v 'dev' | tail -n1)
-    if [ -z "$stable_tag" ]; then
-        echo "Error: Unable to determine a stable (non-dev) tag."
-        return 1
-    fi
-
-    echo "Using stable tag: $stable_tag"
-
-    # Create a new branch from the stable tag.
-    local branch_name="diff${option//--/-}"
-    if git show-ref --verify "refs/heads/${branch_name}" > /dev/null 2>&1; then
-        echo "Branch '$branch_name' already exists. Removing it..."
-        git checkout main
-        git branch -D "$branch_name"
-    fi
-
-    if ! git checkout -b "$branch_name" "$stable_tag"; then
-        echo "Error: Could not create branch '$branch_name' from tag '$stable_tag'."
-        return 1
-    fi
-
-    echo "Overlaying changes from main for $option with diff filter $diff_filter..."
-
-    # Determine file patterns based on the option.
-    local -a patterns
-    case "$option" in
-        --backend)
-            patterns=("*.py")
-            ;;
-        --frontend)
-            patterns=("*.js" "*.ts" "*.tsx")
-            ;;
-        --docs)
-            patterns=("docs/")
-            ;;
-    esac
-
-    # If diff_filter is --all, just checkout all matching files.
-    if [ "$diff_filter" = "--all" ]; then
-        git checkout main -- "${patterns[@]}"
-    else
-        # Remove any leading dashes (so '--A' becomes 'A').
-        local filter_chars
-        filter_chars=$(echo "$diff_filter" | sed 's/^-*//')
-
-        # Get list of files (one per line) matching the filter between stable_tag and main.
-        # Using IFS and read to safely capture filenames even if they contain spaces.
-        local files=()
-        while IFS= read -r file; do
-            files+=("$file")
-        done < <(git diff --name-only --diff-filter="$filter_chars" "$stable_tag" main -- "${patterns[@]}")
-
-        if [ "${#files[@]}" -eq 0 ]; then
-            echo "No files match the filter $diff_filter for $option."
+    for port in "$@"; do
+        echo "🔪 Killing processes on port $port..."
+        local pids=$(lsof -i tcp:"$port" | awk 'NR!=1 {print $2}')
+        if [ -n "$pids" ]; then
+            echo "$pids" | xargs kill -9
+            echo "✅ Killed processes on port $port"
         else
-            git checkout main -- "${files[@]}"
+            echo "❌ No processes found on port $port"
         fi
-    fi
-
-    echo "Files from main have been staged on branch '$branch_name'."
-    echo "Run 'git status' to review the staged changes and inspect them (e.g., with VSCode and GitLens)."
-}
-
-# Create and checkout a new branch from main or specified base
-gnew() {
-    if [ -z "$1" ]; then
-        echo "Usage: gnew <branch_name> [base_branch]"
-        return 1
-    fi
-
-    # Set base branch - default to main if not provided
-    local base_branch=${2:-main}
-
-    # Stash all changes if present
-    local changes=$(git status --porcelain)
-    if [ -n "$changes" ]; then
-        echo "Stashing uncommitted changes..."
-        git stash push -m "Auto stash for $1"
-    fi
-
-    # Checkout base branch and update
-    git checkout "$base_branch"
-    git fetch origin
-    git pull origin "$base_branch"
-
-    # Create and switch to the new branch
-    git checkout -b "$1"
-
-    # Reapply stashed changes if we created a stash
-    if git stash list | grep -q "Auto stash for $1"; then
-        echo "Reapplying stashed changes..."
-        git stash pop
-    fi
-}
-
-# Python environment settings
-export PYTHONDONTWRITEBYTECODE=1
-
-# Fix for macOS fork safety issues
-export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-
-# session-wise fix
-ulimit -n 4096
-
-# Initialize Starship prompt
-eval "$(starship init zsh)"
-
-# Initialize zoxide for smarter directory navigation
-eval "$(zoxide init zsh)"
-
-# AWS Profile
-export AWS_PROFILE="AdministratorAccess-627917628173"
-
-# PATH configurations
-export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
-export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-export PATH="$HOME/istio-1.18.2/bin:$PATH"
-export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/Library/Application Support/reflex/bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/ogabrielluiz/.cache/lm-studio/bin"
-
-# Added by Windsurf
-export PATH="/Users/ogabrielluiz/.codeium/windsurf/bin:$PATH"
-
-# NVM
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-# Aliases
-alias coa='conda activate'
-alias cod='conda deactivate'
-alias gpl='git push --force-with-lease'
-alias gpp='git pull --rebase && git push'
-alias ls='exa --icons -F -H --group-directories-first --git -1'
-alias kpl='kp 7860 & kp 3000'
-alias cdl='cd ~/Projects/langflow'
-alias cdl2='cd ~/Projects/langflow2'
-alias cdp='cd ~/Projects'
-alias cdlf='cd ~/Projects/langflow/src/frontend'
-alias cdlb='cd ~/Projects/langflow/src/backend'
-alias cdlbb='cd ~/Projects/langflow/src/backend/base'
-alias claude="/Users/ogabrielluiz/.claude/local/claude"
-
-# Custom Functions
-# Function to kill processes on a specific port
-kp() {
-    lsof -i tcp:"$1" | awk 'NR!=1 {print $2}' | xargs kill -9
+    done
 }
 
 # Function to update the main branch and optionally rebase or merge it into the current feature branch
@@ -879,3 +543,19 @@ eval "$(starship init zsh)"
 if [ -f "$HOME/.api_keys" ]; then
     source "$HOME/.api_keys"
 fi
+
+
+# PATH configurations
+export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+export PATH="$HOME/istio-1.18.2/bin:$PATH"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+
+# bun
+export BUN_INSTALL="$HOME/Library/Application Support/reflex/bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
