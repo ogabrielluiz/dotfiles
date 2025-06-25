@@ -51,6 +51,16 @@ fi
 ln -sf "$DOTFILES_DIR/git/.gitignore_global" "$HOME/.gitignore_global"
 echo -e "${GREEN}✓ Git configuration linked${RESET}"
 
+# API Keys setup
+echo -e "${BLUE}Setting up API keys template...${RESET}"
+if [ ! -f "$HOME/.api_keys" ]; then
+    cp "$DOTFILES_DIR/example.api_keys" "$HOME/.api_keys"
+    echo -e "${GREEN}✓ API keys template created at ~/.api_keys${RESET}"
+    echo -e "${YELLOW}Please edit ~/.api_keys and add your actual API keys${RESET}"
+else
+    echo -e "${YELLOW}API keys file already exists at ~/.api_keys${RESET}"
+fi
+
 # Remind user to customize Git config
 echo -e "${YELLOW}Remember to customize your Git user information:${RESET}"
 echo -e "git config --global user.name \"Your Name\""

@@ -1,0 +1,34 @@
+# API Keys Configuration
+# Copy this file to ~/.api_keys and add your actual API keys
+# This file should NOT be tracked in version control
+
+# OpenAI API Key
+export OPENAI_API_KEY="your-openai-api-key-here"
+
+# Tavily API Key
+export TAVILY_API_KEY="your-tavily-api-key-here"
+
+# Anthropic API Key
+export ANTHROPIC_API_KEY="your-anthropic-api-key-here"
+
+# Groq API Key
+export GROQ_API_KEY="your-groq-api-key-here"
+
+# NVIDIA API Key
+export NVIDIA_API_KEY="your-nvidia-api-key-here"
+
+# Composio API Key
+export COMPOSIO_API_KEY="your-composio-api-key-here"
+
+# Hugging Face API Token
+export HUGGINFACE_API_TOKEN="your-huggingface-token-here"
+
+# Astra DB Configuration
+export ASTRA_DB_APPLICATION_TOKEN="your-astra-db-token-here"
+export ASTRA_DB_API_ENDPOINT="your-astra-db-endpoint-here"
+
+# CodeFlash API Key
+export CODEFLASH_API_KEY="your-codeflash-api-key-here"
+
+# Add your own API keys below as needed
+# export YOUR_API_KEY="your-api-key-here" 
