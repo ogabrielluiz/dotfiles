@@ -1,0 +1,144 @@
+# Starship configuration
+# See https://starship.rs/config/ for documentation
+
+# Main prompt format
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$nodejs\
+$rust\
+$golang\
+$haskell\
+$java\
+$kotlin\
+$php\
+$time\
+$line_break\
+$character"""
+
+# Directory configuration with substitutions
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+format = "[ $path ]($style)"
+style = "fg:color_fg0 bg:color_yellow"
+read_only = "🔒"
+truncation_symbol = "…/"
+home_symbol = "~"
+
+# Directory substitutions
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Developer" = "󰲋 "
+
+# Git branch configuration
+[git_branch]
+format = "[[ $symbol $branch ](fg:color_fg0 bg:color_aqua)]($style)"
+symbol = ""
+style = "bg:color_aqua"
+
+# Git status configuration
+[git_status]
+format = "[[($all_status$ahead_behind )](fg:color_fg0 bg:color_aqua)]($style)"
+style = "bg:color_aqua"
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+untracked = "?"
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+# Language configurations
+[python]
+format = '[${symbol} (${version} )(\($virtualenv\) )](fg:color_fg0 bg:color_blue)($style)'
+symbol = ""
+style = "bg:color_blue"
+
+[nodejs]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = ""
+style = "bg:color_blue"
+
+[rust]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = ""
+style = "bg:color_blue"
+
+[golang]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = ""
+style = "bg:color_blue"
+
+[haskell]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = ""
+style = "bg:color_blue"
+
+[java]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = " "
+style = "bg:color_blue"
+
+[kotlin]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = ""
+style = "bg:color_blue"
+
+[php]
+format = "[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = ""
+style = "bg:color_blue"
+
+# Time configuration
+[time]
+format = "[[  $time ](fg:color_fg0 bg:color_bg1)]($style)"
+style = "bg:color_bg1"
+time_format = "%R"
+disabled = false
+
+# OS configuration
+[os]
+format = "[$symbol]($style)"
+style = "bg:color_orange fg:color_fg0"
+disabled = false
+
+# OS symbols
+[os.symbols]
+Macos = "󰀵"
+Windows = "󰍲"
+Ubuntu = "󰕈"
+Linux = "󰌽"
+
+# Username configuration
+[username]
+format = "[ $user ]($style)"
+style_user = "bg:color_orange fg:color_fg0"
+style_root = "bg:color_orange fg:color_fg0"
+show_always = true
+
+# Docker configuration
+[docker_context]
+symbol = ""
+style = "bg:color_bg3"
+format = "[[ $symbol( $context) ](fg:#83a598 bg:color_bg3)]($style)"
+only_with_files = true
+
+# Custom configurations
+[custom.uv]
+format = "[[ $symbol( $output) ](fg:color_fg0 bg:color_blue)]($style)"
+symbol = "langflow"
+command = "uv tree | grep 'langflow' | grep -v 'langflow-base' | awk '{print $2}' | sed 's/^v//'"
+when = false
+style = "bg:color_blue"
+disabled = false
+detect_files = ["uv.lock"]
+detect_folders = ["src/backend"] 

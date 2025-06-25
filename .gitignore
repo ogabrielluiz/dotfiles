@@ -1,0 +1,37 @@
+# Cache and temporary files
+.mypy_cache/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+.hypothesis/
+.cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Icon?
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Personal configurations that may contain sensitive information
+# These should be created by the user after installation
+gitconfig.local
+secrets.sh
+.env
+
+# Log files
+*.log 
