@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function gh-cherry-pick() {
+function ghcpr() {
   if [ -z "$1" ]; then
     echo "Usage: gh-cherry-pick <pr_number_1> <pr_number_2> ..."
     return 1
