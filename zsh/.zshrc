@@ -118,6 +118,11 @@ alias cod='conda deactivate'
 ulimit -n 4096
 export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 # Define a function instead of an alias
+# Source the gpr.sh script to make the gpr function available
+if [ -f ~/Projects/dotfiles/zsh/gpr.sh ]; then
+    source ~/Projects/dotfiles/zsh/gpr.sh
+fi
+
 # Define a function to update the main branch and rebase or merge it into the current feature branch
 # Function to update the main branch and optionally rebase or merge it into the current feature branch
 gcop() {
