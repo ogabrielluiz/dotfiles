@@ -38,8 +38,8 @@ chezmoi re-add
 git config --global user.name "Your Name"
 git config --global user.email "your.email@example.com"
 
-# Edit API keys file
-edit ~/.api_keys
+# Edit encrypted API keys file
+chezmoi edit ~/.api_keys
 
 # Apply ZSH changes
 source ~/.zshrc
@@ -83,17 +83,50 @@ source ~/.zshrc
 ### URL Auto-handling
 The configuration includes automatic GitHub PR URL detection - pasting a GitHub PR URL will automatically checkout that PR using the `ghpr` function.
 
-### Chezmoi Migration Notes
-- When migrating existing files to chezmoi, use `chezmoi add <file>` to start managing them
-- Template variables can be used in chezmoi for machine-specific configurations
-- Sensitive files like API keys can be encrypted using chezmoi's encryption features
-- Use `chezmoi edit <file>` to make changes that will be automatically applied
+### Chezmoi Encryption & Security
+- **Age encryption** is configured for sensitive files like API keys
+- **Private key** is stored locally at `~/.config/chezmoi/key.txt` (never commit this!)
+- **Encrypted files** are safely stored in the repository and sync across machines
+- **Backup your age private key** securely (password manager recommended)
+
+Common chezmoi commands:
+```bash
+# Add new files to chezmoi management
+chezmoi add <file>
+
+# Add files with encryption
+chezmoi add --encrypt <sensitive_file>
+
+# Edit any managed file
+chezmoi edit <file>
+
+# View what would change
+chezmoi diff
+
+# Apply all changes
+chezmoi apply
+```
 
 ### API Keys Management
-API keys are stored separately in `~/.api_keys` and sourced automatically. The template includes keys for:
+API keys are managed using chezmoi with age encryption for security:
+
+```bash
+# Edit encrypted API keys (will decrypt, open editor, re-encrypt on save)
+chezmoi edit ~/.api_keys
+
+# View current encrypted status
+chezmoi status
+
+# Apply any changes
+chezmoi apply
+```
+
+The encrypted file includes keys for:
 - OpenAI, Anthropic, Groq, NVIDIA
 - Tavily, Composio, Hugging Face
 - Astra DB, CodeFlash
+
+Keys are encrypted with age and safely synced across machines. The example.api_keys template provides the structure for new setups.
 
 ### Development Environment
 - Python environment with UV support

@@ -1,76 +1,88 @@
 # Gabriel's Dotfiles
 
-This repository contains my personal dotfiles for various tools and applications. These configurations help maintain a consistent environment across different machines.
+This repository contains my personal dotfiles for various tools and applications. These configurations help maintain a consistent environment across different machines using chezmoi for sophisticated dotfiles management.
 
 ## What's Included
 
-- ZSH configuration with Oh-My-Zsh
-- Starship prompt customization
-- Git configuration
-- Custom functions and aliases
-- Various tool configurations
+- ZSH configuration with Oh-My-Zsh and custom functions
+- Starship prompt customization with language indicators
+- Git configuration with workflow helpers
+- Custom GitHub PR handling and Git operations
+- Development environment setup (Node.js, Python, Docker)
+- API keys management with age encryption
+- Chezmoi integration for cross-machine synchronization
 
 ## Installation
 
-To install these dotfiles, you can use the installation script:
+### Using Chezmoi (Recommended)
 
 ```bash
-./install.sh
+# Install chezmoi if not already installed
+curl -sfL https://git.io/chezmoi | sh
+
+# Initialize with this repository
+chezmoi init https://github.com/ogabrielluiz/dotfiles.git
+
+# Preview changes
+chezmoi diff
+
+# Apply dotfiles
+chezmoi apply
 ```
 
-This will create symbolic links from the files in this repository to your home directory and set up an API keys template.
+### Quick Setup
 
-### After Installation
+```bash
+# Update from repository
+chezmoi update
+
+# Edit configurations
+chezmoi edit ~/.zshrc
+```
+
+### Post-Installation
 
 1. **Configure Git**: Update your Git user information
-2. **Setup API Keys**: Edit `~/.api_keys` with your actual API keys
+2. **Setup API Keys**: Use `chezmoi edit ~/.api_keys` to securely manage encrypted API keys
 3. **Restart Terminal**: Or run `source ~/.zshrc` to apply changes
 
-## Manual Installation
+## Key Features
 
-You can also manually link the configurations:
+### Advanced Git Workflow
 
-```bash
-ln -sf $(pwd)/zsh/.zshrc ~/.zshrc
-ln -sf $(pwd)/starship/starship.toml ~/.config/starship.toml
-# Add more as needed
-```
+- **`gcop <branch> [action]`**: Update main branch and rebase/merge into current branch
+- **`ghpr <PR_URL>`**: Safely checkout GitHub PRs with automatic stash handling
+- **`gnew <branch>`**: Create new branch from main with stash management
+- **Auto PR URL detection**: Paste GitHub PR URLs to automatically checkout
 
-## Components
+### Development Tools
 
-### ZSH
+- **Port management**: `kp <port>` to kill processes, `kplf` for Langflow
+- **Smart navigation**: zoxide integration for quick directory switching
+- **Enhanced listing**: exa with Git integration and icons
+- **Multiple environments**: Node.js, Python, Docker configurations
 
-The ZSH configuration includes:
+### Prompt & Shell
 
-- Custom aliases and functions
-- Git workflow helpers (`gcop`, `ghpr`, `gnew`, etc.)
-- Integration with tools like zoxide, starship
-- Support for multiple development environments
-- API keys management
+- **Starship prompt**: Custom styling with Git status and language indicators
+- **ZSH enhancements**: Syntax highlighting, autosuggestions, completions
+- **Tool integrations**: UV, NVM, pnpm, and development utilities
 
-### Starship
+### Security & Management
 
-A customized Starship prompt with:
+- **API keys**: Age-encrypted management with secure cross-machine sync
+- **Chezmoi**: Cross-machine synchronization with templating
+- **Git security**: Global ignore patterns and safe configurations
 
-- Directory truncation
-- Git status information
-- Language version indicators
-- Custom colors and formatting
+## Documentation
 
-### Git
+See [CLAUDE.md](CLAUDE.md) for comprehensive documentation including:
 
-Git configurations for everyday use:
-
-- Useful aliases
-- Better diff and merge tools
-- Automatic cleanup settings
-
-### Security
-
-- API keys are stored separately in `~/.api_keys`
-- Sensitive information is not tracked in the repository
-- Template provided for easy setup
+- Detailed function usage and examples
+- Chezmoi workflow and migration notes
+- Development environment setup
+- Tool integrations and configurations
 
 ## Customization
 
-Feel free to fork this repository and customize it to your liking. The modular structure makes it easy to add or remove components.
+This dotfiles setup is designed to be easily customizable. Use chezmoi's templating features for machine-specific configurations, and feel free to modify the ZSH functions and aliases to match your workflow.
