@@ -2,7 +2,7 @@
 
 function ghcpr() {
   if [ -z "$1" ]; then
-    echo "Usage: gh-cherry-pick <pr_number_1> <pr_number_2> ..."
+    echo "Usage: ghcpr <pr_number_1> <pr_number_2> ..."
     return 1
   fi
 
