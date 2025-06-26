@@ -126,7 +126,12 @@ The encrypted file includes keys for:
 - Tavily, Composio, Hugging Face
 - Astra DB, CodeFlash
 
-Keys are encrypted with age and safely synced across machines. The example.api_keys template provides the structure for new setups.
+Keys are encrypted with age and safely synced across machines. 
+
+**Initial Setup Options:**
+1. **Existing machine**: API keys are already encrypted and managed by chezmoi
+2. **New machine setup**: Use `chezmoi apply --exclude encrypted` to apply non-encrypted files first, then manually set up API keys
+3. **Fresh start**: Remove encrypted file and use the automated template with prompts
 
 ### Development Environment
 - Python environment with UV support
@@ -134,3 +139,8 @@ Keys are encrypted with age and safely synced across machines. The example.api_k
 - Docker with platform configuration
 - Various development tools (UV, LM Studio, Windsurf)
 - Langflow-specific configurations and shortcuts
+
+## Claude Workflow Guidance
+
+### Workflow Principles
+- Always update CLAUDE.md when the workflow or structure changes
