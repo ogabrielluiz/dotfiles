@@ -1,10 +1,13 @@
 #!/bin/bash
 
-function gpr() {
+function gh-cherry-pick() {
   if [ -z "$1" ]; then
-    echo "Usage: gpr <pr_number_1> <pr_number_2> ..."
+    echo "Usage: gh-cherry-pick <pr_number_1> <pr_number_2> ..."
     return 1
   fi
+
+  # Pull the latest changes from the remote repository
+  git pull --rebase
 
   for pr_number in "$@"; do
     pr_info=$(gh pr view $pr_number --json state,mergeCommit)
