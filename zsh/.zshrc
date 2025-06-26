@@ -110,81 +110,15 @@ alias src="source ~/.zshrc"
 path+=~/.local/bin
 
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
-
-# Fix for macOS fork safety issues
-export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-
-# Initialize VIRTUAL_ENV_DISABLE_PROMPT=1
-
-# Fix for macOS fork safety issues
-ulimit -n 4096
-
-# Initialize Starship prompt
 eval "$(starship init zsh)"
-
-# Initialize zoxide for smarter directory navigation
-eval "$(zoxide init zsh)"
-
-# Python
-PYTHONDONTWRITEBYTECODE=1
-
-# Aliases
 alias coa='conda activate'
 alias cod='conda deactivate'
-alias gpl='git push --force-with-lease'
-alias gpp='git pull --rebase && git push'
-alias ls='exa --icons -F -H --group-directories-first --git -1'
-alias kpl='kp 7860 & kp 3000'
-autoload -Uz compinit
-zstyle ':completion:*' menu select
-fpath+=~/.zfunc
-export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
-export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
 
-# pnpm
-export PNPM_HOME="/Users/ogabrielluiz/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/ogabrielluiz/.cache/lm-studio/bin"
-
-# Added by Windsurf
-export PATH="/Users/ogabrielluiz/.codeium/windsurf/bin:$PATH"
-
-. "$HOME/.langflow/uv/env"
-alias claude="/Users/ogabrielluiz/.claude/local/claude"
-alias cdl='cd ~/Projects/langflow'
-alias cdl2='cd ~/Projects/langflow2'
-alias cdp='cd ~/Projects'
-alias cdlf='cd ~/Projects/langflow/src/frontend'
-alias cdlb='cd ~/Projects/langflow/src/backend'
-alias cdlbb='cd ~/Projects/langflow/src/backend/base'
-
-# Custom Functions
-# Function to kill processes on a specific port
-kp() {
-    if [ $# -eq 0 ]; then
-        echo "Usage: kp <port1> [port2] [port3] ..."
-        echo "Example: kp 3000 7860 8080"
-        return 1
-    fi
-
-    for port in "$@"; do
-        echo "🔪 Killing processes on port $port..."
-        local pids=$(lsof -i tcp:"$port" | awk 'NR!=1 {print $2}')
-        if [ -n "$pids" ]; then
-            echo "$pids" | xargs kill -9
-            echo "✅ Killed processes on port $port"
-        else
-            echo "❌ No processes found on port $port"
-        fi
-    done
-}
-
+# session-wise fix
+ulimit -n 4096
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# Define a function instead of an alias
+# Define a function to update the main branch and rebase or merge it into the current feature branch
 # Function to update the main branch and optionally rebase or merge it into the current feature branch
 gcop() {
     local main_branch="$1"
@@ -267,7 +201,6 @@ gcop() {
         git stash pop
     fi
 }
-
 # Safely checkout a GitHub pull request while preserving any local changes
 # This function will:
 # 1. Stash any uncommitted changes
@@ -278,6 +211,7 @@ gcop() {
 # Examples:
 #   ghpr 123 - Checks out PR #123, stashing any local changes first
 #   ghpr https://github.com/langflow-ai/langflow/pull/8714 - Checks out PR from URL
+#   ghpr https://github.com/langflow-ai/langflow/pull/8728/files - Checks out PR from files URL
 ghpr() {
     if [ -z "$1" ]; then
         echo "Safely checkout a GitHub PR, stashing and restoring any local changes"
@@ -285,15 +219,17 @@ ghpr() {
         echo "Examples:"
         echo "  ghpr 123"
         echo "  ghpr https://github.com/langflow-ai/langflow/pull/8714"
+        echo "  ghpr https://github.com/langflow-ai/langflow/pull/8728/files"
         return 1
     fi
 
     local pr_input="$1"
     local pr_number
+    local stash_created=false
 
-    # Check if input is a URL and extract PR number
-    if [[ "$pr_input" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)$ ]]; then
-        pr_number="${BASH_REMATCH[1]}"
+    # Check if input is a URL and extract PR number (supports /files suffix)
+    if [[ "$pr_input" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)(/.*)?$ ]]; then
+        pr_number="${match[1]}"
         echo "Extracted PR number: $pr_number from URL: $pr_input"
     elif [[ "$pr_input" =~ ^[0-9]+$ ]]; then
         pr_number="$pr_input"
@@ -302,6 +238,7 @@ ghpr() {
         echo "Examples:"
         echo "  ghpr 123"
         echo "  ghpr https://github.com/langflow-ai/langflow/pull/8714"
+        echo "  ghpr https://github.com/langflow-ai/langflow/pull/8728/files"
         return 1
     fi
 
@@ -309,17 +246,18 @@ ghpr() {
     if ! git diff --quiet || ! git diff --cached --quiet; then
         echo "Stashing local changes..."
         git stash push --include-untracked -m "Stash before checking out PR #$pr_number"
+        stash_created=true
     fi
 
     # Get and display PR title
     echo "PR Title: $(gh pr view "$pr_number" --json title --jq '.title')"
 
     # Checkout the PR
-    echo "Checking out PR #$pr_number..."
-    gh pr checkout "$pr_number"
+    echo "Checking out PR #${pr_number}..."
+    gh pr checkout "${pr_number}"
 
     # Check if there's anything in the stash and apply it back
-    if git stash list | grep -q "Stash before checking out PR #$pr_number"; then
+    if $stash_created && git stash list | grep "Stash before checking out PR #${pr_number}"; then
         echo "Applying stashed changes..."
         git stash pop
     fi
@@ -331,15 +269,16 @@ zshaddhistory() {
     local line="$1"
     # Remove trailing newline and check if it's a GitHub PR URL
     local clean_line="${line%$'\n'}"
-    if [[ "$clean_line" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)$ ]]; then
+    if [[ "$clean_line" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)(/.*)?$ ]]; then
         echo "🔄 Detected GitHub PR URL, checking out PR #${match[1]}..."
+        # Execute ghpr in a subshell to prevent command leakage
         ghpr "$clean_line"
         return 1  # Prevent the original command from executing
+    else
+        return 0  # Allow normal processing for other commands
     fi
-    return 0  # Allow normal processing for other commands
 }
 
-# Function to show diff between versions
 show_diff() {
     # Validate that we have 1 or 2 arguments.
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
@@ -441,9 +380,7 @@ show_diff() {
     echo "Files from main have been staged on branch '$branch_name'."
     echo "Run 'git status' to review the staged changes and inspect them (e.g., with VSCode and GitLens)."
 }
-
-# Create and checkout a new branch from main or specified base
-gnew() {
+function gnew() {
     if [ -z "$1" ]; then
         echo "Usage: gnew <branch_name> [base_branch]"
         return 1
@@ -475,7 +412,7 @@ gnew() {
 }
 
 # Function to stash what is currently in the staging area and checkout a branch or tag and then apply the stash
-gcos() {
+function gcos() {
     # Stash changes
     git stash
 
@@ -494,68 +431,185 @@ gcos() {
     fi
 }
 
-# ZSH completion configuration
+alias gpl='git push --force-with-lease'
+
+# Kill processes on port(s) - supports multiple ports
+kp() {
+    if [ $# -eq 0 ]; then
+        echo "Usage: kp <port1> [port2] [port3] ..."
+        echo "Example: kp 3000 7860 8080"
+        return 1
+    fi
+
+    for port in "$@"; do
+        echo "🔪 Killing processes on port $port..."
+        local pids=$(lsof -i tcp:"$port" | awk 'NR!=1 {print $2}')
+        if [ -n "$pids" ]; then
+            echo "$pids" | xargs kill -9
+            echo "✅ Killed processes on port $port"
+        else
+            echo "❌ No processes found on port $port"
+        fi
+    done
+}
+
+# Kill langflow ports (frontend 3000, backend 7860)
+kplf() {
+    echo "🚀 Killing Langflow processes..."
+    kp 3000 7860
+}
+
+# Legacy alias for backwards compatibility
+alias kpl='kp 7860 & kp 3000'
+
 autoload -Uz compinit
 zstyle ':completion:*' menu select
 fpath+=~/.zfunc
+export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+alias gpp='git pull --rebase && git push'
+alias ls='exa --icons -F -H --group-directories-first --git -1'
 
-# JINA CLI autocomplete
-if [[ ! -o interactive ]]; then
-    return
-fi
 
-compctl -K _jina jina
 
-_jina() {
-  local words completions
-  read -cA words
-
-  if [ "${#words}" -eq 2 ]; then
-    completions="$(jina commands)"
-  else
-    completions="$(jina completions ${words[2,-2]})"
-  fi
-
-  reply=(${(ps:
-:)completions})
-}
-
-# Terraform completion
 autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /opt/homebrew/bin/terraform terraform
+export PATH="$HOME/istio-1.18.2/bin:$PATH"
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+export PNPM_HOME="/Users/ogabrielluiz/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
 
-# UV shell completion
+# Python
+PYTHONDONTWRITEBYTECODE=1
+
+# alias for cd into ~/Projects/langflow
+alias cdl='cd ~/Projects/langflow'
+alias cdl2='cd ~/Projects/langflow2'
+alias cdp='cd ~/Projects'
+alias cdlf='cd ~/Projects/langflow/src/frontend'
+alias cdlb='cd ~/Projects/langflow/src/backend'
+alias cdlbb='cd ~/Projects/langflow/src/backend/base'
+
+# ZSH has a quirk where `preexec` is only run if a command is actually run (i.e
+# pressing ENTER at an empty command line will not cause preexec to fire). This
+# can cause timing issues, as a user who presses "ENTER" without running a command
+# will see the time to the start of the last command, which may be very large.
+
+# To fix this, we create STARSHIP_START_TIME upon preexec() firing, and destroy it
+# after drawing the prompt. This ensures that the timing for one command is only
+# ever drawn once (for the prompt immediately after it is run).
+
+zmodload zsh/parameter  # Needed to access jobstates variable for STARSHIP_JOBS_COUNT
+
+# Defines a function `__starship_get_time` that sets the time since epoch in millis in STARSHIP_CAPTURED_TIME.
+if [[ $ZSH_VERSION == ([1-4]*) ]]; then
+    # ZSH <= 5; Does not have a built-in variable so we will rely on Starship's inbuilt time function.
+    __starship_get_time() {
+        STARSHIP_CAPTURED_TIME=$(/opt/homebrew/bin/starship time)
+    }
+else
+    zmodload zsh/datetime
+    zmodload zsh/mathfunc
+    __starship_get_time() {
+        (( STARSHIP_CAPTURED_TIME = int(rint(EPOCHREALTIME * 1000)) ))
+    }
+fi
+
+# The two functions below follow the naming convention `prompt_<theme>_<hook>`
+# for compatibility with Zsh's prompt system. See
+# https://github.com/zsh-users/zsh/blob/2876c25a28b8052d6683027998cc118fc9b50157/Functions/Prompts/promptinit#L155
+
+# Runs before each new command line.
+prompt_starship_precmd() {
+    # Save the status, because subsequent commands in this function will change $?
+    STARSHIP_CMD_STATUS=$? STARSHIP_PIPE_STATUS=(${pipestatus[@]})
+
+    # Calculate duration if a command was executed
+    if (( ${+STARSHIP_START_TIME} )); then
+        __starship_get_time && (( STARSHIP_DURATION = STARSHIP_CAPTURED_TIME - STARSHIP_START_TIME ))
+        unset STARSHIP_START_TIME
+    # Drop status and duration otherwise
+    else
+        unset STARSHIP_DURATION STARSHIP_CMD_STATUS STARSHIP_PIPE_STATUS
+    fi
+
+    # Use length of jobstates array as number of jobs. Expansion fails inside
+    # quotes so we set it here and then use the value later on.
+    STARSHIP_JOBS_COUNT=${#jobstates}
+}
+
+# Runs after the user submits the command line, but before it is executed and
+# only if there's an actual command to run
+prompt_starship_preexec() {
+    __starship_get_time && STARSHIP_START_TIME=$STARSHIP_CAPTURED_TIME
+}
+
+# Add hook functions
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd prompt_starship_precmd
+add-zsh-hook preexec prompt_starship_preexec
+
+# Set up a function to redraw the prompt if the user switches vi modes
+starship_zle-keymap-select() {
+    zle reset-prompt
+}
+
+## Check for existing keymap-select widget.
+# zle-keymap-select is a special widget so it'll be "user:fnName" or nothing. Let's get fnName only.
+__starship_preserved_zle_keymap_select=${widgets[zle-keymap-select]#user:}
+if [[ -z $__starship_preserved_zle_keymap_select ]]; then
+    zle -N zle-keymap-select starship_zle-keymap-select;
+else
+    # Define a wrapper fn to call the original widget fn and then Starship's.
+    starship_zle-keymap-select-wrapped() {
+        $__starship_preserved_zle_keymap_select "$@";
+        starship_zle-keymap-select "$@";
+    }
+    zle -N zle-keymap-select starship_zle-keymap-select-wrapped;
+fi
+
+export STARSHIP_SHELL="zsh"
+
+# Set up the session key that will be used to store logs
+STARSHIP_SESSION_KEY="$RANDOM$RANDOM$RANDOM$RANDOM$RANDOM"; # Random generates a number b/w 0 - 32767
+STARSHIP_SESSION_KEY="${STARSHIP_SESSION_KEY}0000000000000000" # Pad it to 16+ chars.
+export STARSHIP_SESSION_KEY=${STARSHIP_SESSION_KEY:0:16}; # Trim to 16-digits if excess.
+
+VIRTUAL_ENV_DISABLE_PROMPT=1
+
+setopt promptsubst
+
+PROMPT='$('/opt/homebrew/bin/starship' prompt --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="$STARSHIP_CMD_STATUS" --pipestatus="${STARSHIP_PIPE_STATUS[*]}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")'
+RPROMPT='$('/opt/homebrew/bin/starship' prompt --right --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="$STARSHIP_CMD_STATUS" --pipestatus="${STARSHIP_PIPE_STATUS[*]}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")'
+PROMPT2="$(/opt/homebrew/bin/starship prompt --continuation)"
+
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
 
-# Source langflow UV environment if it exists
-if [ -f "$HOME/.langflow/uv/env" ]; then
-    . "$HOME/.langflow/uv/env"
-fi
+# bun
+export BUN_INSTALL="$HOME/Library/Application Support/reflex/bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
 
-# Initialize zoxide for smarter directory navigation
-eval "$(zoxide init zsh)"
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/ogabrielluiz/.cache/lm-studio/bin"
 
-# Initialize Starship prompt
-eval "$(starship init zsh)"
+# Added by Windsurf
+export PATH="/Users/ogabrielluiz/.codeium/windsurf/bin:$PATH"
+
 
 # Source API keys if the file exists (create this file separately for sensitive information)
 if [ -f "$HOME/.api_keys" ]; then
     source "$HOME/.api_keys"
 fi
 
-
-# PATH configurations
-export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
-export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-export PATH="$HOME/istio-1.18.2/bin:$PATH"
-export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/Library/Application Support/reflex/bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# NVM
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+. "$HOME/.langflow/uv/env"
+alias claude="/Users/ogabrielluiz/.claude/local/claude"
